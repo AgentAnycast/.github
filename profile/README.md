@@ -2,10 +2,10 @@
   <img src="https://raw.githubusercontent.com/AgentAnycast/agentanycast/main/docs/assets/logo.png" alt="AgentAnycast" width="50%">
 </p>
 
-<h3 align="center">ngrok + DNS for AI Agents</h3>
+<h3 align="center">Connect AI agents across any network.</h3>
 
 <p align="center">
-  <strong>Zero-config connectivity. Capability-based routing. End-to-end encrypted.</strong>
+  <strong>No public IP. No VPN. No configuration.</strong>
 </p>
 
 <p align="center">
@@ -17,67 +17,40 @@
 
 ---
 
-AgentAnycast is a **decentralized P2P runtime for the [A2A (Agent-to-Agent) protocol](https://github.com/a2aproject/A2A)**. It lets AI agents securely discover and collaborate across any network — no public IP, no VPN, no centralized gateway.
+AgentAnycast is a decentralized P2P runtime for the [A2A (Agent-to-Agent)](https://github.com/a2aproject/A2A) protocol, powered by [libp2p](https://libp2p.io/). It lets AI agents securely communicate across any network — your laptop, a corporate server, or the other side of the internet — without public IPs, VPNs, or any infrastructure setup.
 
 ```bash
 pip install agentanycast    # or: npm install agentanycast
 ```
 
-### The Problem
+### Why
 
-The A2A protocol defines how agents collaborate, but its HTTP transport requires every agent to be a server with a public URL. This excludes local agents (behind NAT), corporate agents (behind firewalls), privacy-sensitive deployments, and edge devices.
+A2A requires every agent to be an HTTP server with a public URL. This excludes agents behind NAT (laptops, dev machines), behind firewalls (corporate networks), and in privacy-sensitive environments where centralized gateways are unacceptable. AgentAnycast is the transport layer that closes this gap.
 
-### The Solution
+### What It Does
 
-AgentAnycast provides the missing transport layer:
+**Zero-config connectivity** — One command makes your agent reachable, like ngrok for A2A agents.
 
-- **Agent's ngrok** — one command, your agent is reachable from anywhere
-- **Agent's DNS** — find agents by capability, not by address (`send_task(skill="translate", ...)`)
-- **Agent's zero-trust network** — Noise_XX end-to-end encryption; even relays see only ciphertext
+**Capability-based routing** — Send tasks by skill, not by address. The network finds the right agent.
 
-### Architecture
+**End-to-end encryption** — All traffic is encrypted with Noise_XX. Relay servers only see ciphertext. No plaintext path exists in the codebase.
 
 ```
 ┌──────────────┐
 │  Your App    │  Python or TypeScript
 └──────┬───────┘
-       │ gRPC (Unix socket)
+       │ gRPC (local)
 ┌──────▼───────┐
-│   Daemon     │  Go binary, auto-managed by SDK
-│  (libp2p)    │  NAT traversal + Noise_XX + A2A engine
+│  Daemon      │  Go binary, auto-managed by the SDK
+│  (libp2p)    │  P2P connections, encryption, NAT traversal
 └──────┬───────┘
        │ TCP / QUIC
 ┌──────▼───────┐
-│   Network    │  mDNS (LAN) / Relay (WAN) / DHT
+│  Network     │  mDNS (LAN) / Relay (WAN) / DHT (decentralized)
 └──────────────┘
 ```
 
-A thin SDK communicates over gRPC with a local Go daemon that handles P2P networking, encryption, and protocol logic. Agents on a LAN discover each other via mDNS with zero configuration; across networks, a self-hosted relay provides NAT traversal and skill-based routing.
-
-## Repositories
-
-| Repository | Description | Language |
-|---|---|---|
-| **[agentanycast](https://github.com/AgentAnycast/agentanycast)** | Docs, specs, getting started — **start here** | — |
-| **[agentanycast-python](https://github.com/AgentAnycast/agentanycast-python)** | Python SDK — `pip install agentanycast` | Python |
-| **[agentanycast-ts](https://github.com/AgentAnycast/agentanycast-ts)** | TypeScript SDK — `npm install agentanycast` | TypeScript |
-| **[agentanycast-node](https://github.com/AgentAnycast/agentanycast-node)** | Core daemon — P2P, E2E encryption, A2A engine | Go |
-| **[agentanycast-relay](https://github.com/AgentAnycast/agentanycast-relay)** | Relay server — Circuit Relay v2, skill registry | Go |
-| **[agentanycast-proto](https://github.com/AgentAnycast/agentanycast-proto)** | Protocol Buffer definitions — single source of truth | Protobuf |
-
-## Key Features
-
-| | |
-|---|---|
-| **Three addressing modes** | Direct (Peer ID), Anycast (skill-based routing), HTTP Bridge (standard A2A interop) |
-| **End-to-end encryption** | Noise_XX (Curve25519 + ChaCha20-Poly1305) — no plaintext path exists |
-| **NAT traversal** | AutoNAT + DCUtR hole-punching + Circuit Relay v2 fallback |
-| **Cryptographic identity** | Ed25519 keypair → Peer ID → W3C `did:key` — self-sovereign, no CA |
-| **Framework adapters** | CrewAI and LangGraph integrations included |
-| **Ecosystem interop** | A2A native, HTTP Bridge, MCP Tool ↔ Skill mapping, AGNTCY directory |
-| **Self-hosted relay** | `docker compose up` — you own your infrastructure |
-
-## Quick Example
+### Quick Example
 
 ```python
 from agentanycast import Node, AgentCard, Skill
@@ -96,18 +69,37 @@ async with Node(card=card) as node:
     await node.serve_forever()
 ```
 
+Three ways to send a task:
+
+```python
+await node.send_task(peer_id="12D3KooW...", message=msg)        # direct
+await node.send_task(skill="translate", message=msg)             # by skill
+await node.send_task(url="https://agent.example.com", message=msg)  # HTTP bridge
+```
+
+## Repositories
+
+| Repository | Description | Language |
+|---|---|---|
+| **[agentanycast](https://github.com/AgentAnycast/agentanycast)** | Documentation, specs, discussions — **start here** | — |
+| **[agentanycast-python](https://github.com/AgentAnycast/agentanycast-python)** | Python SDK — `pip install agentanycast` | Python |
+| **[agentanycast-ts](https://github.com/AgentAnycast/agentanycast-ts)** | TypeScript SDK — `npm install agentanycast` | TypeScript |
+| **[agentanycast-node](https://github.com/AgentAnycast/agentanycast-node)** | Core daemon — P2P, E2E encryption, A2A engine | Go |
+| **[agentanycast-relay](https://github.com/AgentAnycast/agentanycast-relay)** | Relay server + skill registry, self-hosted | Go |
+| **[agentanycast-proto](https://github.com/AgentAnycast/agentanycast-proto)** | Protocol Buffer definitions — single source of truth | Protobuf |
+
 ## Documentation
 
-- **[Getting Started](https://github.com/AgentAnycast/agentanycast/blob/main/docs/getting-started.md)** — Installation, first agent, addressing modes
-- **[Architecture](https://github.com/AgentAnycast/agentanycast/blob/main/docs/architecture.md)** — Sidecar model, security, NAT traversal
+- **[Getting Started](https://github.com/AgentAnycast/agentanycast/blob/main/docs/getting-started.md)** — Install, run your first agent, connect two agents
+- **[Architecture](https://github.com/AgentAnycast/agentanycast/blob/main/docs/architecture.md)** — Sidecar model, security design, NAT traversal
 - **[Python SDK Reference](https://github.com/AgentAnycast/agentanycast/blob/main/docs/python-sdk.md)** — Complete API documentation
-- **[Deployment Guide](https://github.com/AgentAnycast/agentanycast/blob/main/docs/deployment.md)** — Production relay, HTTP bridge, metrics
+- **[Deployment Guide](https://github.com/AgentAnycast/agentanycast/blob/main/docs/deployment.md)** — Production relay, HTTP bridge, metrics, security
 - **[Protocol Reference](https://github.com/AgentAnycast/agentanycast/blob/main/docs/protocol.md)** — A2A envelopes, task lifecycle, gRPC service
-- **[Examples](https://github.com/AgentAnycast/agentanycast/blob/main/docs/examples.md)** — Anycast, streaming, LLM agents, framework adapters
+- **[Examples](https://github.com/AgentAnycast/agentanycast/blob/main/docs/examples.md)** — Skill routing, framework adapters, streaming, LLM agents
 
 ## License
 
-SDKs (Python, TypeScript) and Proto definitions are [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0). Daemon and Relay are [FSL-1.1-Apache-2.0](https://fsl.software/) (auto-converts to Apache-2.0 after 2 years).
+SDKs and Proto definitions are [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0). Daemon and Relay are [FSL-1.1-Apache-2.0](https://fsl.software/) (auto-converts to Apache-2.0 after 2 years).
 
 ## Community
 
